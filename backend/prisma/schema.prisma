@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  users       User[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+  sales        Sale[]
+  openedCash   CashRegister[] @relation("OpenedBy")
+  closedCash   CashRegister[] @relation("ClosedBy")
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+}
+
+model Product {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  barcode        String   @unique
+  price          Float
+  cost           Float
+  stock          Int
+  minStock       Int
+  maxStock       Int
+  expirationDate DateTime?
+  imageUrl       String?
+  isActive       Boolean  @default(true)
+  categoryId     Int?
+  category       Category? @relation(fields: [categoryId], references: [id])
+  saleItems      SaleItem[]
+  stockMoves     StockMovement[]
+  alerts         Alert[]
+  createdAt      DateTime @default(now())
+}
+
+model StockMovement {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  type      String
+  quantity  Int
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model Customer {
+  id           Int      @id @default(autoincrement())
+  name         String
+  phone        String?
+  email        String?
+  address      String?
+  creditLimit  Float
+  currentDebt  Float   @default(0)
+  sales        Sale[]
+  payments     CustomerPayment[]
+  createdAt    DateTime @default(now())
+}
+
+model CustomerPayment {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  amount     Float
+  method     String
+  notes      String?
+  paidAt     DateTime @default(now())
+}
+
+model Supplier {
+  id          Int      @id @default(autoincrement())
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  createdAt   DateTime @default(now())
+}
+
+model CashRegister {
+  id             Int      @id @default(autoincrement())
+  openingAmount  Float
+  closingAmount  Float?
+  openedAt       DateTime @default(now())
+  closedAt       DateTime?
+  openedById     Int
+  closedById     Int?
+  openedBy       User     @relation("OpenedBy", fields: [openedById], references: [id])
+  closedBy       User?    @relation("ClosedBy", fields: [closedById], references: [id])
+  sales          Sale[]
+  notes          String?
+}
+
+model Sale {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  customerId     Int?
+  customer       Customer? @relation(fields: [customerId], references: [id])
+  cashRegisterId Int
+  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
+  total          Float
+  paymentType    String
+  status         String
+  items          SaleItem[]
+  payments       SalePayment[]
+  createdAt      DateTime @default(now())
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId   Int
+  productId Int
+  quantity Int
+  unitPrice Float
+  subtotal Float
+  sale     Sale    @relation(fields: [saleId], references: [id])
+  product  Product @relation(fields: [productId], references: [id])
+}
+
+model SalePayment {
+  id       Int      @id @default(autoincrement())
+  saleId   Int
+  sale     Sale     @relation(fields: [saleId], references: [id])
+  amount   Float
+  method   String
+  paidAt   DateTime @default(now())
+}
+
+model Alert {
+  id        Int      @id @default(autoincrement())
+  type      String
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  message   String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
